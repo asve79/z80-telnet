@@ -1,0 +1,283 @@
+	module dmm
+
+;Dynamic Memory Manager
+
+MALLOC:	PUSH	IX
+	CALL	MALLOC_EXE
+	POP	IX
+	RET
+
+DISPOS:	PUSH	IX
+	CALL	DISPOSE_EXE
+	POP	IX
+	RET
+
+;-Init DMM, set heap adr&size
+IDMM:	LD	(HEAP_ADR),HL
+	LD	D,B
+	LD	E,C
+	LD	BC,513
+	PUSH	HL
+	EX	DE,HL
+	XOR	A	;Too small size
+	SBC	HL,BC
+	JP	C,DMM_ERR
+	EX	DE,HL
+	ADD	HL,BC
+	LD	B,H
+	LD	C,L
+	POP	HL
+	LD	(HL),1	;First free blk
+	;Free blk adr
+	INC	HL
+	LD	(HL),C
+	INC	HL
+	LD	(HL),B
+	;Free blk size
+	INC	HL
+	LD	(HL),E
+	INC	HL
+	LD	(HL),D
+	RET
+
+;CHECK HEAP INIT
+INI_CHK:
+	DB	0DDH
+	LD	A,H
+	DB	0DDH
+	OR	L
+	RET	NZ
+	LD	A,3
+	JP	DMM_ERR
+
+;MULTIPLY BY 4
+;<A =arg
+;>HL=res
+MUL4:	LD	L,A
+	LD	H,0
+	ADD	HL,HL
+	ADD	HL,HL
+	RET
+
+;DELETE FREBLK
+;<A=blk no
+BL_DEL:	CALL	MUL4
+;HL=смещение до удаляемого
+	EX	DE,HL
+	LD	HL,(HEAP_ADR)
+	DEC	(HL)
+	CP	(HL)
+	RET	NC ;Это был последний
+	LD	A,(HL)
+	INC	HL
+	PUSH	HL
+	CALL	MUL4
+;HL=table size-4
+	OR	A
+	SBC	HL,DE
+	LD	B,H
+	LD	C,L
+;BC=ldir len
+	POP	HL ;Table adr
+	ADD	HL,DE
+	EX	DE,HL
+	LD	HL,4
+	ADD	HL,DE
+	LDIR
+	RET
+
+;INSERT FREBLK
+;<A=blk before
+BL_INS:	CALL	MUL4
+;HL=смещение до вставки
+	EX	DE,HL
+	LD	HL,(HEAP_ADR)
+	CP	(HL)
+	LD	A,(HL)
+	INC	(HL) ;число блоков
+	JP	Z,TBL_OVFL
+	RET	NC ;не нужно пересылки
+	INC	HL
+	PUSH	HL
+	CALL	MUL4
+;HL=table size
+	OR	A
+	SBC	HL,DE
+	LD	B,H
+	LD	C,L
+;BC=lddr len
+	POP	HL ;table adr
+	DEC	BC
+	ADD	HL,DE
+	ADD	HL,BC ;for lddr
+	EX	DE,HL
+	LD	HL,4
+	ADD	HL,DE
+	EX	DE,HL
+	INC	BC
+	LDDR
+	RET
+
+;Optimize freblk table
+OPTIMIZE:
+	LD	IX,(HEAP_ADR)
+	LD	A,(IX)
+	DEC	A
+	RET	Z
+	INC	IX
+OPTIM1:	LD	L,(IX)
+	LD	H,(IX+1)
+;hl=adr1
+	LD	E,(IX+2)
+	LD	D,(IX+3)
+;de=len1
+	LD	C,(IX+4)
+	LD	B,(IX+5)
+;bc=adr2
+	ADD	HL,DE ;adr1+len1
+	SBC	HL,BC ;cmp hl,adr2
+	JR	Z,OPT_DL
+	LD	DE,4
+	ADD	IX,DE
+OPTIM0:	DEC	A
+	JR	NZ,OPTIM1
+	RET
+
+OPT_DL:	PUSH	AF
+	EX	DE,HL ;de=len1
+	LD	C,(IX+6)
+	LD	B,(IX+7)
+;bc=len2
+	ADD	HL,BC ;len1+len2
+;store common size
+	LD	(IX+2),L
+	LD	(IX+3),H
+;compute item no.
+	LD	HL,(HEAP_ADR)
+	SUB	(HL)
+	NEG
+	CALL	BL_DEL
+	POP	AF
+	JR	OPTIM0
+
+;- Allocate dynamic memory
+;<BC=request size
+;>HL=block adr
+
+MALLOC_EXE:
+	LD	IX,(HEAP_ADR)
+	CALL	INI_CHK
+	LD	A,(IX)
+	INC	IX
+	LD	DE,4
+	INC	BC	;2 bytes for
+	INC	BC	;block size
+
+MALL1:	LD	L,(IX+2)
+	LD	H,(IX+3)
+	OR	A
+	SBC	HL,BC
+	JR	NC,MALL0 ;Block found
+	ADD	IX,DE
+	DEC	A
+	JR	NZ,MALL1
+;Not enough free heap space
+;For requested size
+	LD	A,1
+	JP	DMM_ERR
+
+MALL0:	JR	Z,MALL2
+;Если размер своб блока больше запроса,
+;то уменьшить его размер и увеличить адр
+MALL3:	LD	(IX+2),L
+	LD	(IX+3),H ;Store size
+	LD	L,(IX)
+	LD	H,(IX+1) ;Block adr
+	PUSH	HL
+	ADD	HL,BC
+	LD	(IX),L
+	LD	(IX+1),H ;Store adr
+	POP	HL
+	JR	STLEN
+;Если размер равен, то удалить блок
+MALL2:	LD	L,(IX)
+	LD	H,(IX+1) ;Get adr
+	PUSH	HL
+	PUSH	BC
+	LD	HL,(HEAP_ADR)
+	SUB	(HL)	;Получаем
+	NEG		;номер элемента
+	INC	A
+	CP	(HL)
+;Последний не удалять
+	JR	Z,MALL3
+	DEC	A
+	CALL	BL_DEL
+	POP	BC
+	POP	HL
+;В первых двух байтах блока
+;сохраняем его длину
+STLEN:	LD	(HL),C
+	INC	HL
+	LD	(HL),B
+	INC	HL
+;Now HL=block adr
+	RET	;Все готово
+
+;Dispose DMM block
+;<HL=adr
+DISPOSE_EXE:
+	LD	IX,(HEAP_ADR)
+	CALL	INI_CHK
+	DEC	HL
+	LD	B,(HL)
+	DEC	HL
+	LD	C,(HL)
+;Выбираем длину из первых
+;двух байт (см. STLEN)
+	INC	IX
+	XOR	A
+DSP0:
+	LD	E,(IX)
+	LD	D,(IX+1)
+	OR	A
+	SBC	HL,DE
+	ADD	HL,DE  ;If adr >
+	JR	C,DSP1 ;Go think
+	INC	A
+	LD	DE,4
+	ADD	IX,DE
+	JR	DSP0
+;Добавить новый блок
+DSP1:	PUSH	HL
+	PUSH	BC
+	CALL	BL_INS
+	POP	BC
+	POP	HL
+;Данные нового блока
+	LD	(IX),L
+	LD	(IX+1),H
+	LD	(IX+2),C
+	LD	(IX+3),B
+;Объединить прилегающие своб блоки
+	CALL	OPTIMIZE
+	RET
+
+TBL_OVFL:
+	LD	A,2
+
+DMM_ERR:
+	LD	HL,DMM_MSG
+	JP	SYSERR
+
+DMM_MSG:
+	DB 13,10,'DMM ERROR$'
+	DB 13,10,'IDMM: Heap too small$'
+	DB 13,10,'MALLOC: Cannot allocate$'
+	DB 13,10,'DISPOSE: Table overflow$'
+	DB 13,10,'Heap not initialized$'
+
+HEAP_ADR:
+	DW	0
+
+	END

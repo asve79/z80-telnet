@@ -1,0 +1,630 @@
+;	TITLE	KEYBOARD
+; Extended version
+; for 56 logical keys keyboard
+; Extended by Michael Borisov
+
+;LAST CHANGE 12.Mar.1995
+
+	module spkeyb
+
+KDREBE	EQU	3	;5 BAD, 3 NICE
+
+LENBUF	EQU	30
+
+REPDEL	EQU	30
+REPPER	EQU	4
+
+CST:	LD	HL,(ULBUF)
+	LD	A,L
+	CP	H
+	LD	A,0
+	RET	Z
+	CPL
+	RET
+
+CONIN:	EI
+CONIN0:	CALL	CST
+	JR	Z,CONIN0
+	DI
+	LD	A,L
+	INC	A
+	CP	LENBUF-1
+	JR	NZ,CONIN1
+	XOR	A
+CONIN1:	LD	(ULBUF),A
+	LD	DE,BUFKLA
+	LD	H,0
+	ADD	HL,DE
+	LD	A,(HL)
+	EI
+	RET
+
+; Additional keys
+;SHF-..	/-54	.-53	TAB-52	=-51	]-50	'-49	CPS-48
+;RUS-47	\-46	,-45	`-44	--43	[-42	;-41	R/A-..
+; Main keys
+;ALT-..	A-38	Q-37	1-36	0-35	P-34	ENT-33	SPC-32
+;Z-31	S-30	W-29	2-28	9-27	O-26	L-25	CTRL-..
+;X-23	D-22	E-21	3-20	8-19	I-18	K-17	M-16
+;C-15	F-14	R-13	4-12	7-11	U-10	J-9	N-8
+;V-7	G-6	T-5	5-4	6-3	Y-2	H-1	B-0
+
+TBL_SC:	DEFB	00,33,25,00,17,00,00,00
+	DEFB	09,00,00,00,00,00,00,00
+	DEFB	01,00,00,00,00,00,00,00
+	DEFB	00,00,00,00,00,00,00,00
+
+	DEFB	40,48;Extend
+
+INK_01:	BIT	7,E
+	JR	Z,INK_03
+	CP	32;No ext keys pressed
+	JR	C,INK_22
+	RLA
+	RLA
+	RLCA; Y0ZXXXXX -> XXXXX0YZ
+	CP	3
+	JR	NC,INK_03
+	ADD	A,32-1;After main table
+
+INK_22:	LD	(INK_02+2),A
+INK_02:	LD	A,(IX+0)
+	OR	A
+	JR	Z,INK_03
+	ADD	A,H
+	LD	E,A
+	RET
+
+INK_03:	POP	BC
+	RET		;>=2 KEYS PRESSED
+
+INTKEY:	LD	E,0FFH	;FLAG
+	XOR	A
+	IN	A,(254) ;All keys
+	CPL
+	AND	10111111B
+	JR	Z,INK_15 ;No keys pressed at all
+
+	LD	IX,TBL_SC
+	LD	A,0FEH
+	IN	A,(254)
+	CPL
+	LD	L,A
+	AND	10000001B ;D0=Alt,D7=Shift
+	LD	H,A
+
+	LD	A,07FH
+	IN	A,(254)
+	CPL
+	LD	D,A
+	AND	00100010B ;D1=CTRL,D5=R/A
+	OR	H	  ;Shifts: S0R000CA
+	LD	(KEYSHT),A
+;────────────────────────────────
+; Это ∙ для устранения приколов с ВШ
+	XOR	A
+	IN	A,(254)
+;────────────────────────────────
+
+	LD	H,7
+	LD	A,L
+	AND	00111110B ;Exclude Shift&Alt
+	CALL	NZ,INK_01
+	DEC	H
+
+	LD	L,10111111B
+	LD	BC,0FDFEH
+INK_05:	IN	A,(C)
+	CPL
+	AND	L
+	CALL	NZ,INK_01
+	RLC	B
+	DEC	H
+	JP	NZ,INK_05
+
+	LD	A,D
+	AND	10011101B ;Exclude R/A&Ctrl
+	CALL	NZ,INK_01
+	JR	INK_04
+
+INK_15:	LD	HL,KEYMOD
+	BIT	7,(HL)
+	JR	Z,INK_04
+	LD	A,(TMP_CO)
+	JR	INK_10
+
+INK_04:	LD	HL,KSTATE
+INK_06:	BIT	7,(HL)
+	JR	NZ,INK_07
+	INC	HL
+	DEC	(HL)
+	DEC	HL
+	JR	NZ,INK_07
+	LD	(HL),0FFH
+INK_07:	LD	A,L
+	LD	HL,KSTATE+4
+	CP	L
+	JR	NZ,INK_06
+
+	INC	E
+	RET	Z	;No keys (except shifts)
+
+	LD	HL,TBL_KC-1-1	;"DEC E" & -1
+	LD	D,0
+	ADD	HL,DE
+	LD	A,(HL)	;Fetch pseudo code
+
+	LD	HL,KSTATE
+	CP	(HL)
+	JP	Z,INK_09	;Auto-repeat
+	EX	DE,HL
+	LD	HL,KSTATE+4
+	CP	(HL)
+	JP	Z,INK_09	;Auto-repeat
+	BIT	7,(HL)
+	JR	NZ,INK_08
+	EX	DE,HL
+	BIT	7,(HL)
+	RET	Z		;Ожидание освобождения KSTATE0 или KSTATE4
+
+INK_08:	LD	(STACK),SP
+	LD	(HL),A
+	INC	HL
+	LD	(HL),KDREBE
+	INC	HL
+	LD	(HL),REPDEL	;Задержка до первого повтора
+	INC	HL
+	PUSH	HL
+	CALL	DECODE	;OBTAIN CODES 00 .. FF
+	POP	HL
+	LD	(HL),A
+
+INK_10:	CALL	PKBUF		;Put into buffer
+	JR	Z,OVER_B	;Keyboard buffer overflow
+
+	CALL	SBEEP
+
+	XOR	A
+	LD	(REPSTP),A
+END_KE:	LD	A,(KEYMOD)
+	AND	01110111B	;RESET ANY GRAPH & EXT
+
+INK_14:	LD	HL,KEYMOD
+	CP	(HL)
+	LD	(HL),A
+	RET	Z
+
+	AND	00001111B
+
+	CP	00000110B
+	JR	C,KURS
+	SUB	2
+KURS:	RET	;JP	KURSET
+
+OVER_B:	LD	B,0
+	LD	D,10
+	JP	ZVUK
+
+INK_09:	INC	HL
+	LD	(HL),KDREBE
+	INC	HL
+	LD	A,(REPSTP) ;Repeat disable for locks
+	OR	A
+	RET	NZ
+	DEC	(HL)	;Auto-repeat delay
+	RET	NZ
+	LD	(HL),REPPER ;Задержка между повторами
+	INC	HL
+	LD	A,(HL)	;Fetch result code
+	JR	INK_10
+
+SBEEP:	PUSH	AF	;Accepting key beep
+	PUSH	BC
+	PUSH	DE
+	PUSH	HL
+
+	LD	B,2
+	LD	D,56
+	CALL	ZVUK
+
+	POP	HL
+	POP	DE
+	POP	BC
+	POP	AF
+	RET
+
+PKBUF:	LD	C,A
+	LD	HL,USBUF
+	LD	A,(HL)
+	INC	A
+	CP	LENBUF-1
+	JR	NZ,PKBUF1
+	XOR	A
+PKBUF1:	DEC	HL
+	CP	(HL)
+	INC	HL
+	RET	Z
+	LD	E,(HL)
+	LD	(HL),A
+	LD	D,0
+	LD	HL,BUFKLA
+	ADD	HL,DE
+	LD	(HL),C
+	RET
+
+;LETTERS WITH ALT KEY
+LT_ALT:	LD	D,0
+	BIT	2,(HL)
+	JR	Z,ERR_KE;GT_MAC
+
+	LD	HL,TBL_CG
+	ADD	HL,DE
+	LD	A,(HL)
+	RET
+
+;CTRL+NUMBERS,SPACE,ENTER,CAPS,РУС,TAB
+CTRLNM:	LD	A,C
+	CP	11
+	JR	C,INS_C
+
+ERR_KE:	LD	B,080H
+	LD	D,60
+	CALL	ZVUK
+
+END_K1:	LD	SP,(STACK)	;WRONG KEY
+	CALL	ROCK
+	JP	END_KE
+
+;INSERT CODE
+INS_C:	LD	HL,KEYMOD
+	BIT	7,(HL)
+	SET	7,(HL)
+	JR	NZ,INS_C1
+	LD	A,C
+	LD	(TMP_CO),A
+	JR	EXTSTY	;First digit
+
+INS_C1:	LD	A,(TMP_CO)
+	LD	B,A
+	ADD	A,A
+	ADD	A,A
+	JR	C,ERR_KE
+	ADD	A,B
+	JR	C,ERR_KE
+	ADD	A,A	;Now A=A*10
+	JR	C,ERR_KE
+	ADD	A,C
+	JR	C,ERR_KE
+	LD	(TMP_CO),A
+
+EXTSTY:	LD	SP,(STACK)
+	CALL	ROCK
+	JP	SBEEP
+
+DECODE:	LD	HL,KEYMOD
+
+	BIT	5,A ;LETTERS A-Z
+	JP	NZ,DECO_1
+
+	BIT	4,A ;Орелевские дополн. клавиши
+	JP	NZ,DECO_7
+
+; Остались цифры, SPACE, ENTER, TAB, CAPS, РУС
+	LD	C,A
+	LD	A,(KEYSHT)
+	RLCA
+	AND	00000111B
+	LD	E,A
+	LD	D,0
+	LD	HL,TBL_NC ;SHIFT DECODE TABLE
+	ADD	HL,DE
+	LD	A,(HL)	;0=STD,1=SHFT,2=ALT,3=CTRL+ALT,4=CTRL
+	
+	CP	4
+	JP	Z,CTRLNM;CTRL+NUMBER
+
+	ADD	A,C
+	ADD	A,C
+	ADD	A,C
+	ADD	A,C
+	LD	E,A
+	LD	HL,TBL_DG
+	ADD	HL,DE
+	LD	A,(HL)
+
+	CP	80H	;No controls
+	RET	C
+
+	CP	0C0H
+	JP	Z,CLBUF		;CLEAR BUFFER
+	; Keyboard controls	
+	SUB	0F0H
+	JP	C,ERR_KE
+	LD	H,0
+	LD	L,A
+	LD	DE,TBL_CT
+	ADD	HL,DE
+
+	LD	B,20
+	LD	D,20
+	CALL	ZVUK
+
+	LD	SP,(STACK)
+
+	CALL	ROCK
+
+	LD	A,(KEYMOD)
+	XOR	(HL)
+	JP	INK_14
+
+DECO_1:	AND	00011111B
+	LD	E,A
+	LD	A,(KEYSHT)
+	OR	A
+	JR	Z,DECO_2
+	BIT	1,A	;CTRL
+	JR	NZ,DEC_10
+	BIT	0,A	;ALT
+	JP	NZ,LT_ALT
+	RLCA		;CF=SHIFT
+
+DECO_2:	LD	A,(KEYMOD)
+	LD	D,A
+	ADC	A,0
+	RRA	;CAPS LOCK XOR SHIFT
+	LD	A,E
+	RLA
+	LD	C,A
+	BIT	2,D	;Рамочные символы
+	LD	HL,TBL_G
+	JR	NZ,DECO_4
+	CALL	ST_RUS
+	JP	PO,DECO_6
+	BIT	0,C
+	LD	A,'A'
+	JR	NZ,DECO_5
+	LD	A,'a'
+DECO_5:	ADD	A,E
+	RET
+
+DEC_10:	LD	A,E
+	INC	A
+	RET
+
+DECO_6:	LD	HL,TBL_RU
+DEC_61:	LD	D,0
+	ADD	HL,DE
+	LD	A,(HL)
+	BIT	0,C
+	RET	NZ
+	INC	A
+	CP	'd';'ё'
+	RET	Z
+	ADD	A,20H-1 ;"DEC A"
+	CP	0B0H	;a RUS
+	RET	C
+	ADD	A,30H
+	RET
+
+DECO_4:	LD	B,0
+	ADD	HL,BC
+	LD	A,(HL)
+	RET
+
+DECO_7: LD	HL,KEYSHT
+	AND	00001111B
+	LD	E,A
+	CP	7
+	JR	NC,DECO_8 ;Ext keys without RUS letters
+
+	CALL	ST_RUS	;Status RUS
+	JP	PO,DECO_9 ;Rus exts
+DECO_8:	LD	A,(HL)
+	LD	HL,TBL_EM
+SHFCHK:	RLA	;CF=SHIFT
+	RL	E
+	LD	D,0
+	ADD	HL,DE
+	LD	A,(HL)
+;CTRL for keys "_","\","[","]"
+	CP	'@'
+	RET	C
+	CP	128
+	RET	NC
+	LD	HL,KEYSHT
+	BIT	1,(HL)
+	RET	Z
+	AND	00011111B
+	RET
+	
+DECO_9:	LD	A,(HL)	;KEYSHT
+	RLCA	;CF=SHIFT
+	LD	A,(KEYMOD)
+	ADC	A,0
+	LD	C,A
+	LD	HL,TBL_ER
+	JR	DEC_61
+
+ST_RUS:	LD	A,(KEYMOD)
+	AND	00000010B ;RUS Lock
+	LD	D,A
+	LD	A,(KEYSHT)
+	AND	00100000B ;RUS Shift
+	OR	D
+	RET	; P/V=1 if RUS
+
+CLBUF:	LD	SP,(STACK)
+
+	CALL	ROCK
+	LD	A,(USBUF)
+	LD	(ULBUF),A
+
+	LD	B,80
+	LD	D,40
+
+ZVUK:	LD	A,(BORDER)
+	XOR	10H
+ZVUK1:	OUT	(0FEH),A
+	LD	E,D
+ZVUK0:	DEC	E
+	JR	NZ,ZVUK0
+	XOR	10H
+	DJNZ	ZVUK1
+	RET
+
+ROCK:	LD	A,0FFH	;Disable repeat
+	LD	(REPSTP),A
+	RET
+
+;00 .. 09 - DIGITS
+;10       - SPACE
+;11       - ENTER
+;12       - CAPS
+;13       - RUS
+;14       - TAB
+;16 .. 22 - EXTENDS (WITH RUS)
+;23 .. 26 - EXTENDS (WITHOUT RUS)
+;32 .. 57 - LETTERS
+
+; Main keys
+TBL_KC:	DEFB	33,39,56,06	;BHY6
+	DEFB	05,51,38,53	;5TGV
+	DEFB	45,41,52,07	;NJU7
+	DEFB	04,49,37,34	;4RFC
+	DEFB	44,42,40,08	;MKI8
+	DEFB	03,36,35,55	;3EDX
+	DEFB	00,43,46,09	; LO9
+	DEFB	02,54,50,57	;2WSZ
+	DEFB	10,11,47,00 ;SP,EN,P0
+	DEFB	01,48,32	;1QA
+; Additional keys
+	DEFB	00,18,16,23	; ;[- ║  ЖХ-
+	DEFB	25,20,26,13	;`,\R ║ `Б\R
+	DEFB	12,19,17,24	;C']= ║ CЭЪ=
+	DEFB	14,21,22	;T./  ║ TЮЁ
+
+;	  	   XOR	     AND       OR
+TBL_CT:	DEFB	00000001B	;F0 CAPS LOCK
+	DEFB	00000010B	;F1 RUS LOCK
+	DEFB	00000100B	;F2 GRAPH
+	DEFB	00000000B	;F3 KOI7 0+1 (ENGL-RUS)
+	DEFB	00000000B	;F4 KOI7 0/1 (KOI8)
+	DEFB	00000000B	;F5 IBM ALT
+				;C0 CLEAR BUFFER
+;		STD SHFT ALT  CTRL+ALT
+TBL_DG:	DEFB	'0', ')',07FH,01FH
+	DEFB	'1', '!',01BH,0F5H
+	DEFB	'2', '@',  0 ,  0
+	DEFB	'3', '#',011H,0F4H
+	DEFB	'4', '$',001H,0F3H
+	DEFB	'5', '%',008H,00FH
+	DEFB	'6', '^',01AH,  0
+	DEFB	'7', '&',019H,  0
+	DEFB	'8', '*',018H,010H
+	DEFB	'9', '(',0F2H,  0
+	DEFB	' ',0C0H,003H,0C1H
+	DEFB	0DH,00AH,  0 ,0C3H
+	DEFB	0F0H, 0 ,  0 ,  0
+	DEFB	0F1H, 0 ,  0 ,  0
+	DEFB	009H,12H,014H,0C2H
+
+; 0=STD,1=SHIFT,2=ALT,4=CTRL,3=CTRL+ALT
+TBL_NC:	DEFB 0,1,2,0,4,0,3,0
+
+; Additional keys in LAT mode.
+TBL_EM: DEFB	'[{'	;[
+	DEFB	']}'	;]
+	DEFB	';:'	;;
+	DEFB	"''"	;'
+	DEFB	',<'	;,
+	DEFB	'.>'	;.
+	DEFB	'/?'	;/
+; without RUS letters
+	DEFB	'-_'	;-
+	DEFB	'=+'	;=
+	DEFB	'`~'	;`
+	DEFB	'\|'	;\
+
+; Russ. letters on ext. keys
+TBL_ER: DEFB	'ХЪЖЭБЮЁ'
+
+TBL_RU:	DEFB	'ФИСВУАПР'	;A-H
+	DEFB	'ШОЛДЬТЩЗ'	;I-P
+	DEFB	'ЙКЫЕГМЦЧ'	;Q-X
+	DEFB	'НЯ'		;Y-Z
+
+TBL_G:	DEFB	'│║'	;A
+	DEFB	'╧╨'	;B
+	DEFB	'┘╝'	;C
+	DEFB	'┼╬'	;D
+	DEFB	'┬╦'	;E
+	DEFB	'┤╣'	;F
+	DEFB	'╞╟'	;G
+	DEFB	'╪╫'	;H
+	DEFB	'░░'	;I
+	DEFB	'╡╢'	;J
+	DEFB	'▌▐'	;K
+	DEFB	'▄▀'	;L
+	DEFB	'█ '	;M	SPACE=255
+	DEFB	'╛╜'	;N
+	DEFB	'▒▒'	;O
+	DEFB	'▓▓'	;P
+	DEFB	'─═'	;Q
+	DEFB	'┐╗'	;R
+	DEFB	'├╠'	;S
+	DEFB	'╒╓'	;T
+	DEFB	'╕╖'	;U
+	DEFB	'╘╙'	;V
+	DEFB	'┌╔'	;W
+	DEFB	'┴╩'	;X
+	DEFB	'╤╥'	;Y
+	DEFB	'└╚'	;Z
+
+TBL_CG:	DEFB	'·■'	;B
+	DEFB	'Є¤'	;D
+	DEFB	'°Ў'	;F
+	DEFB	'ў∙'	;H
+	DEFB	'■Ў'	;J
+	DEFB	'ЖЭ'	;L
+	DEFB	'ЮБ'	;N
+	DEFB	'ХЪ'	;P
+	DEFB	'√ї'	;R
+	DEFB	'ўЁ'	;T
+	DEFB	'¤№'	;V
+	DEFB	'Ї∙'	;X
+	DEFB	'°є'	;Z
+
+KSTATE:	DEFB	0FFH	;Pseudo CODE
+	DEFB	0	;Счетчик дребезга
+	DEFB	0	;REPPER счетчик
+	DEFB	0	;код с учетом MODE
+
+	DEFB	0FFH	;4 переменных
+	DEFB	0	;аналогичного назн.
+	DEFB	0
+	DEFB	0
+
+REPSTP:	DEFB	0		;FF - STOP REPEART
+
+;BIT 0 =1 CAPS LOCK
+;BIT 1 =1 RUS LOCK
+;BIT 2 =1 GRAPH         |-FOR IBM RUS
+;BIT 3    NOT USED
+;BIT 4 =1 KOI7 0+1 LOCK |0-IBM RUS
+;BIT 5 =1 KOI7 0/1 LOCK	|0/
+;BIT 6    NOT USED
+;BIT 7 =1 EXTEND
+KEYMOD:	DEFB	00000000B	;KEEP THIS TWO VARS CLOSE TOGETHER
+KEYSHT:	DEFB	00000000B	;COPY OF SHIFT BYTE
+
+TMP_CO:	DEFB	0	;Временное значение кода при наборе
+
+STACK:	DEFS	2
+
+BUFKLA:	DEFS	LENBUF
+ULBUF:	DB	0
+USBUF:	DB	0
+
+BORDER:	DEFB	0
+
+	endmodule
