@@ -41,6 +41,11 @@ IVTDAT	EQU	0BFH
 	LD	A,#BE ;(IVT+1) ;high byte
 	LD	I,A
 	EI
+
+	LD	HL,5B00H ;init memory manager
+	LD	BC,2800H
+	CALL	dmm.IDMM
+
 	CALL	main.PROG
 ; After the program quits, it returns here.
 ; Perform a reset into the TR-DOS
