@@ -77,7 +77,8 @@ SYSERR:
         include "wind.a80"
         include "main.asm"
 	include "dmm.a80"
-
+	include "_rs232/uart.a80"
+	include "_rs232/sockets.a80"
 END
 
 	savesna "telnet.sna", _start

@@ -1,7 +1,7 @@
 	module main
 
 	include "wind.mac"
-
+	include "_rs232/sockets.mac"
 PROG
 	LD	HL,5B00H
 	LD	BC,2800H
@@ -9,7 +9,7 @@ PROG
 
 ;	LD	HL,WRK_WIND
 ;	CALL	wind.PRINTW
-	printwin WRK_WIND
+	_printw WRK_WIND
 	CALL	wind.ENDW
 	LD	HL,msg_keys
 	CALL	wind.PRINTS
