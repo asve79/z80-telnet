@@ -73,7 +73,7 @@ SYSERR:
 	DI
 	HALT
 
-	include "spkeyb.a80"
+	include "spkeyb40.a80"
         include "wind.a80"
         include "main.asm"
 	include "dmm.a80"

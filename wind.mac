@@ -1,0 +1,9 @@
+	MODULE wind_macros
+
+	MACRO	printwin descr
+	LD	HL, descr
+	CALL	wind.PRINTW
+	ENDM
+
+	ENDMODULE
+

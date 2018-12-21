@@ -38,7 +38,7 @@ NDAD:	EX	DE,HL
 	DJNZ	MUL1
 	RET
 
-;����� OPEN A WINDOW �����
+;═════ OPEN A WINDOW ═════
 PRINTW 	CALL	WIN_STO
 	CALL	CUR_OFF
 
@@ -157,7 +157,7 @@ DRW_HD:	XOR	A
 	LD	(IY+7),A;print postn
 	RET
 
-;���� CLOSE CURRENT WINDOW ����
+;════ CLOSE CURRENT WINDOW ════
 ENDW:	CALL	WIN_STO
 	CALL	CUR_OFF
 	BIT	1,(IY+5) ;was it saved?
@@ -178,7 +178,7 @@ ABWIND:	LD	HL,WIN_USE
 
 AB_USE:	DB 0FFH
 
-;������� MAKE A SOLID LINE "B" �����
+;─────── MAKE A SOLID LINE "B" ─────
 LNFF:	PUSH	BC
 	PUSH	HL
 LNFF0:	LD	(HL),0FFH
@@ -187,7 +187,7 @@ LNFF0:	LD	(HL),0FFH
 	POP	HL
 	POP	BC
 
-;�������� SCREEN LINE INCREMENT ����
+;──────── SCREEN LINE INCREMENT ────
 LENIN:	INC	H
 	LD	A,H
 	AND	7
@@ -204,7 +204,7 @@ LENIN:	INC	H
 	LD	H,A
 	RET
 
-;�������� ATTR LINE INCREMENT ������
+;──────── ATTR LINE INCREMENT ──────
 LENINA:	LD	A,L
 	ADD	A,32
 	LD	L,A
@@ -212,7 +212,7 @@ LENINA:	LD	A,L
 	INC	H
 	RET
 
-;����������� WINDOW ERRORS ���������
+;─────────── WINDOW ERRORS ─────────
 WIN_ERROR:
 	LD	HL,WIN_MSG
 	JP	SYSERR
@@ -221,10 +221,10 @@ WIN_MSG:
 	DB 'Invalid window size$'
 	DB 'Stack overflow$'
 	DB 'Invalid memory adr$'
-;�����������������������������������
+;───────────────────────────────────
 
 
-;������� PUSH OLD WINDOW DATA ������
+;─────── PUSH OLD WINDOW DATA ──────
 WIN_PUSH:
 	LD	HL,WIN_USE
 	INC	(HL)
@@ -256,7 +256,7 @@ WIN_PUSH:
 	LD	(HL),D
 	RET
 
-;����� POP OLD WINDOW DATA �����
+;───── POP OLD WINDOW DATA ─────
 WIN_POP:
 	LD	HL,WIN_USE
 	DEC	(HL)
@@ -292,7 +292,7 @@ WIN_HEAD:	DW	0
 STACKW:		DB	1
 	DEFS	MAXWIND*4
 
-;������ STORE SCREEN INFO ��������
+;────── STORE SCREEN INFO ────────
 WIN_ALLOC:
 	LD	L,(IY+2) ;size X
 	LD	E,(IY+3) ;size Y
@@ -319,7 +319,7 @@ WINAL_0:
 	XOR	A	;"PUT"
 	JP	WIN_SWP	;store data
 
-;���� RESTORE SCREEN INFO ����
+;──── RESTORE SCREEN INFO ────
 WIN_DISPOSE:
 	LD	HL,(MEMWIND);here was it
 	LD	A,H
@@ -423,20 +423,20 @@ CLSW:	CALL	NO_CUR
 	DI
 	LD	A,(IY+5)
 	AND	1
-	LD	C,A	;�࠭�� ����
+	LD	C,A	;Граница окна
 	ADD	A,(IY)
-	LD	L,A	;��� ���� X
+	LD	L,A	;Абс коорд X
 	LD	A,(IY+1)
 	ADD	A,C
-	LD	H,A	;��� ���� Y
+	LD	H,A	;Абс коорд Y
 	LD	A,(IY+2)
 	SUB	C
 	SUB	C
-	LD	B,A	;������ �� X
+	LD	B,A	;Размер по X
 	LD	A,(IY+3)
 	SUB	C
 	SUB	C
-	LD	C,A	;������ �� Y
+	LD	C,A	;Размер по Y
 
 CLSW0:	PUSH	BC
 	PUSH	HL
@@ -446,15 +446,15 @@ CLSW0:	PUSH	BC
 	CALL	XOANOR_LINE ;Clear line
 	POP	HL
 	PUSH	HL
-	LD	A,(IY+4) ;��ਡ��
+	LD	A,(IY+4) ;Атрибут
 	CALL	ATTR_SET
 	POP	HL
 	POP	BC
 	INC	H
 	DEC	C
 	JR	NZ,CLSW0
-	LD	(IY+6),C ;����� �
-	LD	(IY+7),C ;��砫� ����
+	LD	(IY+6),C ;Курсор в
+	LD	(IY+7),C ;начало коорд
 	EI
 	RET
 
@@ -791,7 +791,7 @@ HLT:	HALT
 	LD	L,(IX+14) ;Execution
 	LD	H,(IX+15) ;Addr
 	CALL	JP_HL
-	CP	A	;�ਧ��� ENTER
+	CP	A	;Признак ENTER
 	RET
 
 M_ARRS:	LD	A,23
