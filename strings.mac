@@ -1,0 +1,30 @@
+	MODULE	string_macros
+
+
+;find end string. return HL to position with 0
+	MACRO	_findzero string
+	XOR	A
+	LD	HL, string
+fz_loop	CP	(HL),0
+	JP 	Z, fz_end
+	inc	HL
+	inc 	A
+	JP	fz_loop
+fz_end	NOP
+	ENDM
+
+;zill zero string
+	MACRO	_fillzero addr, len
+	PUSH 	HL
+	PUSH 	BC
+	LD	HL, addr
+	LD 	BC, len
+fiz_loop
+	LD	(HL),0
+	DEC	BC
+	JP	NZ,fiz_loop
+	POP	BC
+	POP	HL
+	ENDM
+
+	ENDMODULE

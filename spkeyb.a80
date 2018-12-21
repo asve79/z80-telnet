@@ -398,7 +398,7 @@ DEC_61:	LD	D,0
 	BIT	0,C
 	RET	NZ
 	INC	A
-	CP	'd';'ё'
+	CP	0F1h ;'ё'
 	RET	Z
 	ADD	A,20H-1 ;"DEC A"
 	CP	0B0H	;a RUS

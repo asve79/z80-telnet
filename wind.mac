@@ -1,0 +1,26 @@
+	MODULE wind_macros
+
+	MACRO	_printw descr
+	LD	HL, descr
+	CALL	wind.PRINTW
+	ENDM
+
+	MACRO	_prints string
+        LD      HL,string
+        CALL    wind.PRINTS
+	ENDM
+
+	MACRO	_endw
+	CALL	wind.ENDW
+	ENDM
+
+	MACRO	_cur_on
+	call	wind.CUR_ON
+	ENDM
+
+	MACRO	_cur_off
+	call	wind.CUR_OFF
+	ENDM
+
+	ENDMODULE
+

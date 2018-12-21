@@ -41,6 +41,11 @@ IVTDAT	EQU	0BFH
 	LD	A,#BE ;(IVT+1) ;high byte
 	LD	I,A
 	EI
+
+	LD	HL,5B00H ;init memory manager
+	LD	BC,2800H
+	CALL	dmm.IDMM
+
 	CALL	main.PROG
 ; After the program quits, it returns here.
 ; Perform a reset into the TR-DOS
@@ -73,11 +78,12 @@ SYSERR:
 	DI
 	HALT
 
-	include "spkeyb.a80"
+	include "spkeyb40.a80"
         include "wind.a80"
         include "main.asm"
 	include "dmm.a80"
-
+	include "_rs232/uart.a80"
+	include "_rs232/sockets.a80"
 END
 
 	savesna "telnet.sna", _start
