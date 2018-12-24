@@ -1,4 +1,3 @@
-
 	module uart
 
 
@@ -180,9 +179,9 @@ rr2     ex      de,hl
         ld      b,c
         ld      c,low ERS_DR
         inir
-cable_cancel_download   ld a,0
-                        or a
-                        jp nz,cable_cancel_download_ex
+;cable_cancel_download   ld a,0
+;                        or a
+;                        jp nz,cable_cancel_download_ex
         ld	a,d
 	or	e
 	jr	nz,rr1

@@ -14,12 +14,21 @@
 	CALL	wind.ENDW
 	ENDM
 
+	MACRO	_closew
+	CALL	wind.ENDW
+	ENDM
+
 	MACRO	_cur_on
 	call	wind.CUR_ON
 	ENDM
 
 	MACRO	_cur_off
 	call	wind.CUR_OFF
+	ENDM
+
+	MACRO	_inp_str bufer
+	LD	HL, bufer
+	CALL	wind.INP_STR
 	ENDM
 
 	ENDMODULE

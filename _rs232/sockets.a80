@@ -1,5 +1,7 @@
-
 	module sockets
+
+
+INVALID_SOCKET		equ #ff;-1
 
 ; command codes
 
@@ -30,7 +32,7 @@ cmd_buffer ds 10
 
 ;------------------------------------------------------------------------
 
-
+	include "_rs232/uart.a80"
 
 
 ;socket()
@@ -322,11 +324,4 @@ ghbn2	ld bc,0
 	ret
 
 
-
-
-
-
-
-
 	endmodule
-

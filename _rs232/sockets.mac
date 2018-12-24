@@ -1,4 +1,3 @@
-
 ; socket types
 
 SOCK_STREAM     equ 1	; stream socket (TCP)
