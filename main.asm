@@ -8,12 +8,7 @@
 
 PROG
 	CALL	init
-;	LD	HL,5B00H
-;	LD	BC,2800H
-;	CALL	dmm.IDMM
-
 	_printw wnd_main
-;	_endw
 	_prints	msg_keys
 	CALL	showstatus
 	_cur_on
@@ -24,12 +19,11 @@ mloop   call    spkeyb.CONIN	;main loop entry
 	jp	z,exit		;if RShift+Q pressed, exit
 	CP	01Ch		;if Rshift+W pressed - terminal command
 	JP	NZ,m_lab4
-	LD	HL,termcmd
-	LD	A,(HL)
+	LD	A,(termcmd)
 	OR	A		;check terminal command mode
 	JP	NZ, m_lab3
 	LD	A,1		;if terminal command mode is off
-	LD	(HL),A		;turn on termianl mode
+	LD	(termcmd),A	;turn on termianl mode
 	_cur_off
 	_printw	wnd_cmd
 	_prints	inp_bufer	;print content of command buffer
@@ -37,21 +31,51 @@ mloop   call    spkeyb.CONIN	;main loop entry
 	JP	mloop
 m_lab3	_cur_off		;close the commend window
 	_endw
-	LD	HL, termcmd
 	XOR	A
-	LD	(HL),A
+	LD	(termcmd),A
 	_cur_on
-m_lab4	call	wind.PRINTC	;out character
+m_lab4	PUSH 	AF		;/choeck connected
+	LD	A,(connected)
+	OR	A
+	JZ	m_lab6
+	LD	A,(conn_descr)
+	CP	#FF		;//check descriptor
+	JZ	m_lab6
+	LD	A,(termcmd)
+	OR	A		;check terminal command mode
+	JP	NZ, m_lab6
+	_cur_off
+	POP	AF
+	LD	HL,term_buf
+	LD	(HL),A
+	PUSH	AF
+	LD	BC,1
+	LD	A,(conn_descr)
+	CALL	sockets.send
+	OR	A
+	JZ	m_lab7
+	_printw wnd_status
+	LD	A,'E'
+	_printc
+	_closew
+	_cur_on
+	JR	m_lab6
+m_lab7	_printw wnd_status
+	LD	A,'#'
+	_printc
+	_closew
+	_cur_on
+m_lab6	POP	AF
+	call	wind.PRINTC	;out character
 	CP	13		;check for press enter
 	JP	NZ, m_lab5
-	LD 	HL,termcmd
-	LD	A,(HL)	
+	LD	A,(termcmd)	
 	OR	A
 	JP	Z,mloop		;if it is not terminal command
 	_isopencommand inp_bufer,m_lab2
 	_isclosecommand inp_bufer,m_lab2
 	_ishelpcommand inp_bufer,m_lab2
-m_lab2	CALL	fillzero	;clear command buffer
+m_lab2	_fillzero inp_bufer, 254	;clear command buffer
 	jp 	mloop
 m_lab5	LD	HL,termcmd	;write terminal command to bufer
 	PUSH 	AF
@@ -63,7 +87,12 @@ m_lab5	LD	HL,termcmd	;write terminal command to bufer
 	LD	(HL),A
 	JP	mloop
 exit	_cur_off		;TOOD: close connection if needed
-	_endw
+	_closew
+        LD      HL,conn_descr
+        LD      A,(HL)
+        CP      0FFh
+        RET	Z                     ;if descriptor is bad
+	CALL	sockets.close
 	RET
 
 fillzero
@@ -80,15 +109,23 @@ init	LD HL,connected
 
 showstatus
 	_printw wnd_status
-	_prints msg_status
-	LD	HL,termcmd
-	LD	A,(HL)
+;	_prints msg_status
+	LD	A,(connected)
 	OR	A
 	JZ	sstat1
-	_prints msg_connected
-	JP	sstat_e
-sstat1	_prints msg_disconnected
-sstat_e	_closew
+	LD	A,'*'
+	_printc
+;	_prints msg_connected
+	JR	sstat_e
+sstat1	;_prints msg_disconnected
+	LD	A,'x'
+	_printc
+sstat_e	
+	LD	A,(inc_addr)
+	INC	A
+	LD	(inc_addr),A
+	CALL	wind.A_HEX
+	_closew
 	RET
 
 wnd_main
@@ -135,17 +172,26 @@ msg_help DB 13,'Commands:',13
 	DB 'RShift+W - Enter terminal command',13
 	DB 0
 
-msg_status DB 'Remote: ',0
+inc_addr DB 0
+
+msg_status DB 31,'Remote: ',0
 msg_connected DB 'connected',0
 msg_disconnected DB 'disconnected',0
 msg_closeok DB 'closed',0
 msg_closeerr DB 'close error',0
+msg_openerr DB 'open connection error',0
+msg_openok  DB 13,'Connected successfuly',13,0
+msg_alredyopen DB 'Have active connection. Close current first!',0
+msg_fdproblem DB 'Connection descriptor problem',0
+msg_connecting DB 'Connecting...',0
+msg_connectclosed DB 13,'Disconnected',13,0
 
 cmd_open  DB 'open',0
 cmd_close DB 'close',0
 cmd_help  DB 'help',0
 
 ;----------------------------- VARIABLES ---------------------
+term_buf DB 0
 conn_descr DB 0 ;Connection descriptor
 ;connection status
 connected DB 0; 0 - not connected 1 - connected
@@ -154,6 +200,11 @@ termcmd	DB	0 ;0 - not terminal command 1 - terminal command
 ;buffer for intput. MAX 255 bytes
 inp_bufer
 	DEFS 255,0
+
+host_addr_len	dw 0
+host_addr	dw 0
+my_addr		db 0,0,0,0:dw 0 ;my ip+port
+server_addr	db 93,158,134,3:dw 80
 
 ;	include "_rs232/uart.a80"
 	include "_rs232/sockets.a80"

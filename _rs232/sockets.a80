@@ -1,8 +1,5 @@
 	module sockets
 
-
-INVALID_SOCKET		equ #ff;-1
-
 ; command codes
 
 IC_CMD_SOCKET		equ 0x01
@@ -23,6 +20,8 @@ IC_CMD_RECVFROM		equ 0x19
 IC_CMD_RES_OK		equ 0x00
 IC_CMD_RES_FAIL		equ 0xff
 
+INVALID_SOCKET  equ #ff ;-1
+
 ; buffers
 
 cmd_buffer ds 10
@@ -32,8 +31,8 @@ cmd_buffer ds 10
 
 ;------------------------------------------------------------------------
 
-	include "_rs232/uart.a80"
 
+	include "_rs232/uart.a80"
 
 ;socket()
 ;>	byte #01
@@ -237,43 +236,17 @@ recv
 	ld b,a
 	pop af
 	ld c,a ;bc=real len
-	ld a,b
-	or c
-	jr z,recv_skip
+	ld a,b:or c:jr z,recv_skip
 	push bc
-recv_skip_header	ld a,0
-		or a
-		jr nz,recv1
-		push bc
-		pop hl
-; skip http header
-2		call uart.GetChar
-		dec hl
-		cp #0d
-		jr nz,2b
-		call uart.GetChar
-		dec hl
-		cp #0a
-		jr nz,2b		
-		call uart.GetChar
-		dec hl
-		cp #0d
-		jr nz,2b
-		call uart.GetChar
-		dec hl
-		cp #0a
-		jr nz,2b
-		ld b,h
-		ld c,l
-		ld (recv_skip_header+1),a
-		pop hl
-		push bc
 recv1	ld hl,0
 	call uart.Read ;get data
 	pop bc
 recv_skip
 	xor a
 	ret
+
+
+
 
 
 
@@ -324,4 +297,11 @@ ghbn2	ld bc,0
 	ret
 
 
+
+
+
+
+
+
 	endmodule
+

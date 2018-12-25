@@ -34,16 +34,15 @@ fz_end	LD	A,C
 	ENDM
 
 fillzero
-fiz_loop
-	XOR	A
-	LD	(HL),A
+	LD	(HL),0
+	INC	HL
 	DEC	BC
 	LD	A,B
 	OR	A
-	JP	NZ,fiz_loop
+	JP	NZ,fillzero
 	LD	A,C
 	OR	A
-	JP	NZ,fiz_loop
+	JP	NZ,fillzero
 	RET
 
 ;compare string; return a as result. 1 - equal 0 - not equal

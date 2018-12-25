@@ -31,5 +31,9 @@
 	CALL	wind.INP_STR
 	ENDM
 
+	MACRO	_printc
+	CALL	wind.PRINTC
+	ENDM
+
 	ENDMODULE
 
