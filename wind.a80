@@ -1255,10 +1255,7 @@ A_HEX0:	AND	0FH
 	DAA
 	JP	PRINTC_S
 
-INTCUR:	LD	A,(CNTR)
-	INC	A
-	LD	(CNTR),A
-	LD	A,(CURM)
+INTCUR	LD	A,(CURM)
 	OR	A
 	RET	Z
 	AND	01111111B
@@ -1621,7 +1618,6 @@ PAR_DATA:
 	DS	MAXPARS
 CMD_ADR:
 	DW	0
-CNTR	DB	0	; counter	
 	endmodule
 
 	include "edznak.a80"

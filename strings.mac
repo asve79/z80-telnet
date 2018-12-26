@@ -1,5 +1,7 @@
 	MODULE	strings
 
+	include	"math.a80"
+
 ;find end string. return HL to position with 0
 	MACRO	_findzero string
 	PUSH	BC
@@ -75,5 +77,63 @@ cmpstr1 INC	DE
 	JP	cmpstre
 cmpstrn XOR	A
 cmpstre	ret
+
+;IN:
+; HL- string address
+;OUT:
+; DE - number
+; A - status. 0-ok
+texttonum
+	PUSH	AF
+	PUSH	BC
+	XOR	A
+	LD	BC,1
+	LD	(tmpmul),BC
+	LD	(tmpptr),HL
+	LD	(tmpdig),A	;//reset temporary
+	LD 	(tmpres),A
+	LD 	(tmpres+1),A
+	LD	C,0
+ttn1	LD	A,(HL)	;//go to end line
+	OR	A
+	JZ	ttn3
+	INC	HL
+	INC	C
+	JR	ttn1
+ttn3	DEC	HL
+	LD	(tmpptr),HL
+	LD	A,C
+	LD	(tmpdig),A
+	XOR	A
+	LD	(tmpres),A
+ttn4	LD	BC,(tmpmul)
+	LD	HL,(tmpptr)
+	LD	A,(HL)
+	DEC	HL
+	LD	(tmpptr),HL
+	SUB	'0'		;//put number code to A
+	LD	E,A
+	LD	D,0
+	CALL	math.mult_de_bc
+	LD	DE,(tmpres)
+	ADD	HL,DE
+	LD	(tmpres),HL
+
+	LD	de,10
+	CALL	math.mult_de_bc	; //hl=bc*10
+	LD	(tmpmul),HL
+	LD	A,(tmpdig)
+	DEC	A
+	LD	(tmpdig),A
+	JNZ	ttn4
+	LD	DE,(tmpres)
+	POP	BC
+	POP	AF
+	RET
+
+tmpmul	DW	0
+tmpptr	DW	0
+tmpdig  DB	0
+tmpres	DW	0
 
 	ENDMODULE

@@ -2,8 +2,8 @@
 ; Extended version
 ; for 56 logical keys keyboard
 ; Extended by Michael Borisov
-
-;LAST CHANGE 12.Mar.1995
+; 
+; Modifyed by asve
 
 	module spkeyb
 
@@ -22,22 +22,27 @@ CST:	LD	HL,(ULBUF)
 	CPL
 	RET
 
-CONIN:	EI
-CONIN0:	CALL	CST
-	JR	Z,CONIN0
+CONIN	EI
+CONIN0	CALL	CST
+CONIN2	JR	Z,CONIN0
 	DI
 	LD	A,L
 	INC	A
 	CP	LENBUF-1
 	JR	NZ,CONIN1
 	XOR	A
-CONIN1:	LD	(ULBUF),A
+CONIN1	LD	(ULBUF),A
 	LD	DE,BUFKLA
 	LD	H,0
 	ADD	HL,DE
 	LD	A,(HL)
 	EI
 	RET
+
+CONINW	EI		
+	CALL	CST
+	RET	Z	;no wait key code in bufer
+	JR	CONIN2
 
 ; Additional keys
 ;SHF-..	/-54	.-53	TAB-52	=-51	]-50	'-49	CPS-48

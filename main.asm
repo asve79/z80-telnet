@@ -13,8 +13,9 @@ PROG
 	CALL	showstatus
 	_cur_on
 
-mloop   call    spkeyb.CONIN	;main loop entry
-	jp	z,mloop		;wait a press key
+mloop   CALL	check_rcv
+	CALL    spkeyb.CONINW	;main loop entry
+	JZ	mloop		;wait a press key
 	cp	01Dh
 	jp	z,exit		;if RShift+Q pressed, exit
 	CP	01Ch		;if Rshift+W pressed - terminal command
@@ -128,6 +129,49 @@ sstat_e
 	_closew
 	RET
 
+;/ inctease counter every interrupt
+INCCNTR LD	A,(im_cntr)
+	INC	A
+	LD	(im_cntr),A
+	RET
+
+check_rcv	;//check receve info from connection
+	LD	A,(im_cntr)
+	AND	#C0
+	RET	Z		;skip N tick's
+	XOR	A
+	LD	(im_cntr),A
+	LD	A,(termcmd)
+	OR	A
+	RET	NZ		;//if terminal mode, then no print error status
+;	LD	A,'$'	;//for debugging
+;	_printc
+	LD	A,(connected)
+	OR	A
+	RET	Z
+	LD	A,(conn_descr)
+	CP	#FF	;//check descriptor
+	RET	Z
+rcv1	recv	conn_descr,rcv_bufer,255
+	OR	A
+	JZ	rcv2
+	_printw wnd_status	;//if error
+	LD	A,'!'
+	_printc
+	_closew
+	RET
+rcv2	LD	A,B
+	OR	A
+	JNZ	rcv3
+	LD	A,C
+	OR	A
+	RET	Z	;//if BC=0 (receve 0 bytes); TODO: check is if 1st 0 bytes, then exit. if it end of block then get new block
+rcv3	LD	A,(HL)
+	_printc		;//print char
+	INC	HL
+	DEC	BC
+	JR	rcv2
+
 wnd_main
 	DB 0,0
 	DB 32,22
@@ -161,7 +205,8 @@ msg_keys
 	DB 'For help type "help" in terminal cmd.',13
 	DB '-------------------------------------',13,13,0
 
-msg_help DB 13,'Commands:',13
+msg_help 
+	DB 13,'Commands:',13
         DB '---------',13
 	DB 'open hostname port - Open connection to host:port',13
 	DB 'close - Close current connection',13
@@ -172,18 +217,18 @@ msg_help DB 13,'Commands:',13
 	DB 'RShift+W - Enter terminal command',13
 	DB 0
 
-inc_addr DB 0
+inc_addr 	DB 0
 
-msg_status DB 31,'Remote: ',0
-msg_connected DB 'connected',0
+msg_status 	DB 31,'Remote: ',0
+msg_connected 	DB 'connected',0
 msg_disconnected DB 'disconnected',0
-msg_closeok DB 'closed',0
-msg_closeerr DB 'close error',0
-msg_openerr DB 'open connection error',0
-msg_openok  DB 13,'Connected successfuly',13,0
-msg_alredyopen DB 'Have active connection. Close current first!',0
-msg_fdproblem DB 'Connection descriptor problem',0
-msg_connecting DB 'Connecting...',0
+msg_closeok 	DB 'closed',0
+msg_closeerr 	DB 'close error',0
+msg_openerr 	DB 'open connection error',0
+msg_openok  	DB 13,'Connected successfuly',13,0
+msg_alredyopen 	DB 'Have active connection. Close current first!',0
+msg_fdproblem 	DB 'Connection descriptor problem',0
+msg_connecting 	DB 'Connecting...',0
 msg_connectclosed DB 13,'Disconnected',13,0
 
 cmd_open  DB 'open',0
@@ -191,20 +236,21 @@ cmd_close DB 'close',0
 cmd_help  DB 'help',0
 
 ;----------------------------- VARIABLES ---------------------
-term_buf DB 0
-conn_descr DB 0 ;Connection descriptor
+im_cntr		DB 0
+term_buf	DB 0
+conn_descr	DB 0 ;Connection descriptor
 ;connection status
-connected DB 0; 0 - not connected 1 - connected
+connected	DB 0; 0 - not connected 1 - connected
 ;terminal command flag
 termcmd	DB	0 ;0 - not terminal command 1 - terminal command
 ;buffer for intput. MAX 255 bytes
-inp_bufer
-	DEFS 255,0
+inp_bufer	DEFS 255,0
+rcv_bufer	DEFS 255,0
 
 host_addr_len	dw 0
 host_addr	dw 0
 my_addr		db 0,0,0,0:dw 0 ;my ip+port
-server_addr	db 93,158,134,3:dw 80
+server_addr	db 93,158,134,3:dw 23
 
 ;	include "_rs232/uart.a80"
 	include "_rs232/sockets.a80"
