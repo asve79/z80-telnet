@@ -17,17 +17,16 @@ mloop   CALL	check_rcv
 	CALL    spkeyb.CONINW	;main loop entry
 	JZ	mloop		;wait a press key
 	cp	01Dh
-	jp	z,exit		;if RShift+Q pressed, exit
-	CP	01Ch		;if Rshift+W pressed - terminal command
-	JP	NZ,m_lab4
-	LD	A,(termcmd)
-	OR	A		;check terminal command mode
-	JP	NZ, m_lab3
+	jp	z,exit		;if SS+Q pressed, exit
+	CP	01Ch		;if Ss+W pressed - terminal command
+	JP	NZ,m_lab4	; ------>
+	_iscmdmode		;check terminal command mode (0 - tty 1 - command mode)
+	JP	Z, m_lab3
 	LD	A,1		;if terminal command mode is off
 	LD	(termcmd),A	;turn on termianl mode
 	_cur_off
-	_printw	wnd_cmd
-	_prints	inp_bufer	;print content of command buffer
+	_printw	wnd_cmd		;print command window
+	_prints	cmd_bufer	;print content of command buffer
 	_cur_on
 	JP	mloop
 m_lab3	_cur_off		;close the commend window
@@ -35,58 +34,93 @@ m_lab3	_cur_off		;close the commend window
 	XOR	A
 	LD	(termcmd),A
 	_cur_on
-m_lab4	PUSH 	AF		;/choeck connected
-	LD	A,(connected)
-	OR	A
-	JZ	m_lab6
+	JP	mloop
+m_lab4	CP	#7F		;//delete key pressed
+	JNZ	m_lab13		;//if not go to m_lab11
+	_istermcommand
+	JZ	m_lab11		;//if it is temminal command
+	_findzero cmd_bufer	;//get ptr in command bufer
+	JR	m_lab14
+m_lab11	_findzero inp_bufer	;//get ptr in input buffer
+m_lab14	OR	A
+	JZ	m_lab13		;//if nothing in bufer
+	DEC	HL
+	XOR	A
+	LD	(HL),A		;//erase symbol
+	LD	A,8		;/cusor to left
+	_printc
+	LD	A,' '		;//space
+	_printc
+	LD	A,8		;//left again
+	_printc
+	JP	mloop
+m_lab13	PUSH 	AF		;//check connected
+	_isconnected
+	JNZ	m_lab6
 	LD	A,(conn_descr)
 	CP	#FF		;//check descriptor
 	JZ	m_lab6
 	LD	A,(termcmd)
 	OR	A		;check terminal command mode
 	JP	NZ, m_lab6
-	_cur_off
+	_findzero inp_bufer	;/put char to output buffer
 	POP	AF
-	LD	HL,term_buf
 	LD	(HL),A
 	PUSH	AF
-	LD	BC,1
-	LD	A,(conn_descr)
-	CALL	sockets.send
-	OR	A
-	JZ	m_lab7
-	_printw wnd_status
-	LD	A,'E'
-	_printc
-	_closew
-	_cur_on
-	JR	m_lab6
-m_lab7	_printw wnd_status
-	LD	A,'#'
-	_printc
-	_closew
-	_cur_on
 m_lab6	POP	AF
+;	_cur_off
 	call	wind.PRINTC	;out character
 	CP	13		;check for press enter
 	JP	NZ, m_lab5
-	LD	A,(termcmd)	
-	OR	A
-	JP	Z,mloop		;if it is not terminal command
-	_isopencommand inp_bufer,m_lab2
-	_isclosecommand inp_bufer,m_lab2
-	_ishelpcommand inp_bufer,m_lab2
-m_lab2	_fillzero inp_bufer, 254	;clear command buffer
+	_istermcommand
+;	LD	A,(termcmd)	
+;	OR	A
+	JZ	m_lab8		;if it is not terminal command
+	_isopencommand cmd_bufer,m_lab2
+	_isclosecommand cmd_bufer,m_lab2
+	_ishelpcommand cmd_bufer,m_lab2
+m_lab2	_fillzero cmd_bufer, 100	;clear command buffer
 	jp 	mloop
 m_lab5	LD	HL,termcmd	;write terminal command to bufer
 	PUSH 	AF
 	LD	A,(HL)
 	OR	A
-	JP	Z, mloop
-	_findzero inp_bufer
+	JNZ 	mloop
+	_findzero cmd_bufer
 	POP	AF
 	LD	(HL),A
 	JP	mloop
+m_lab8	LD	A,(connected)	;//if ENTER pressed in terminal
+	OR	A
+	JZ	m_lab9		;//if not connected
+	_findzero inp_bufer
+	LD	C,A
+	LD	A,13		;/add 13 code for <CR><LF> EOL command
+	LD	(HL),A
+	INC	HL
+	LD	A,10		;/add 10 code for <CR><LF> EOL command
+	LD	(HL),A
+	INC	C
+	LD	B,0
+	LD	A,(conn_descr)
+	CALL	sockets.send	;//send buffer content
+	OR	A
+	JZ	m_lab7
+	_printw wnd_status
+	LD	A,'E'		;//error status TODO: close connection
+	_printc
+	_closew
+	_cur_on
+	JP	m_lab9
+m_lab7	_printw wnd_status	;//success status
+	LD	A,'#'
+	_printc
+	_closew
+	_cur_on
+m_lab9	_fillzero inp_bufer, 255
+	JP	mloop
+
+
 exit	_cur_off		;TOOD: close connection if needed
 	_closew
         LD      HL,conn_descr
@@ -97,7 +131,7 @@ exit	_cur_off		;TOOD: close connection if needed
 	RET
 
 fillzero
-	_fillzero inp_bufer, 0FFh
+	_fillzero cmd_bufer, 100
 	RET
 
 init	LD HL,connected
@@ -153,6 +187,7 @@ check_rcv	;//check receve info from connection
 	CP	#FF	;//check descriptor
 	RET	Z
 rcv1	recv	conn_descr,rcv_bufer,255
+	LD	HL,rcv_bufer
 	OR	A
 	JZ	rcv2
 	_printw wnd_status	;//if error
@@ -179,7 +214,7 @@ wnd_main
 	DB 00000011B
 	DB 0,0
 	DB 0
-	DB 1,'Telnet client v0.0.1',0
+	DB 1,'Terminal v0.0.5',0
 
 wnd_cmd
 	DB 0,21
@@ -200,8 +235,8 @@ wnd_status
 	DB 1,'Status',0
 
 msg_keys
-        DB 'Press RShift+Q for exit.',13
-        DB 'Press RShift+W for terminal command.',13
+        DB 'Press SS+Q for exit.',13
+        DB 'Press SS+W for terminal command.',13
 	DB 'For help type "help" in terminal cmd.',13
 	DB '-------------------------------------',13,13,0
 
@@ -244,13 +279,16 @@ connected	DB 0; 0 - not connected 1 - connected
 ;terminal command flag
 termcmd	DB	0 ;0 - not terminal command 1 - terminal command
 ;buffer for intput. MAX 255 bytes
-inp_bufer	DEFS 255,0
+cmd_bufer	DEFS 100,0
+inp_bufer	DEFS 256,0
 rcv_bufer	DEFS 255,0
 
 host_addr_len	dw 0
 host_addr	dw 0
-my_addr		db 0,0,0,0:dw 0 ;my ip+port
-server_addr	db 93,158,134,3:dw 23
+my_addr		db 0,0,0,0:
+my_port		dw 0 ;my ip+port
+server_addr	db 93,158,134,3
+server_port	dw 23
 
 ;	include "_rs232/uart.a80"
 	include "_rs232/sockets.a80"

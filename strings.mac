@@ -5,8 +5,7 @@
 ;find end string. return HL to position with 0
 	MACRO	_findzero string
 	PUSH	BC
-	XOR	A
-	LD	C,A
+	LD	C,0
 	LD	HL, string
 	CALL	strings.findzero
 	POP	BC
@@ -15,10 +14,10 @@
 findzero
 fz_loop	LD	A,(HL)
 	OR	A
-	JP	Z,fz_end
+	JR	Z,fz_end
 	inc	HL
 	inc 	C
-	JP	fz_loop
+	JR	fz_loop
 fz_end	LD	A,C
 	RET
 
