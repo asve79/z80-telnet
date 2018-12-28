@@ -1,0 +1,159 @@
+;----- IS OPEN COMMAND MACROS ----------------
+	MACRO	_isopencommand in_str,exit
+	_cmpstr cmd_bufer, cmd_open, 4
+	OR	A
+	JZ	lex
+	XOR	A
+	LD	(termcmd),A
+	LD	HL,connected
+	LD	A,(HL)
+	OR	A
+	JNZ	oc3			;if alredy connected
+	LD	HL,conn_descr
+	LD	A,(HL)
+	CP	0FFh
+	JNZ	lex			;if descriptor is bad
+
+	_cur_off
+	_closew
+
+	_printw  wnd_status
+	_prints  msg_connecting
+
+	;gethostbyname
+	ld 	hl, cmd_bufer+5 ;//Set ptr to 1st symbol of hostname. command open[space]hostname[space]port. 
+        ld 	bc,#FFFF
+oloop	INC	BC
+	LD 	A,(HL)
+	INC	HL
+	CP	32
+	JZ	oc0	      ;//find space symbol. it means that hostname is end
+	OR	A
+	JNZ	oloop	      ;//check zero code. it means that hostname is end. TODO: neet to set default port
+oc0	LD	A,B		;//check length of hostname. must be > 0
+	OR	A
+	JNZ	oc1
+	LD	A,C
+	OR	A
+	JZ	get_err		 ;//if hostname length is zero
+	PUSH	HL
+oc5	LD	A,(HL)	;//find port number or rezo
+	CP	32
+	JZ	oc6
+	OR	A
+	JZ	oc7
+	JR	oc8
+oc6	INC	HL
+	JP	oc5
+oc7	LD	DE,23
+	LD	(server_port),DE
+	JR	oc9
+oc8	CALL	strings.texttonum
+	LD	(server_port),DE
+oc9	POP	HL
+	ld 	HL, cmd_bufer+5
+oc1	CALL 	sockets.gethostbyname	;//get ip address
+	or a:jp nz,get_err
+	ld (server_addr),hl,(server_addr+2),bc
+
+	;create socket			;//create socket
+	socket 	AF_INET,SOCK_STREAM,0
+	cp #FF:jp z,get_err
+	ld 	(conn_descr),a
+
+	;bind my socket
+	bind conn_descr,my_addr		;//bind to address ????
+	or a:jp nz,get_err
+
+        ;connect to host
+	connect conn_descr,server_addr	;//create connection
+	or a:jr nz,get_err
+	_closew
+	_prints msg_openok
+	LD	HL,connected
+	LD	A,1
+	LD	(HL),A
+	CALL	showstatus
+	jr	lex
+get_err	_closew
+	_prints msg_openerr
+	LD	HL,connected
+	LD	(HL),0
+	jr	lex
+	CALL	showstatus
+oc3	_closew
+	_prints msg_alredyopen
+	LD	HL,connected
+	LD	(HL),0
+	jr	lex
+	CALL	showstatus
+oc4	_closew
+	_prints	msg_fdproblem
+	LD	HL,connected
+	LD	(HL),0
+	CALL	showstatus
+lex
+	ENDM
+	
+;--- IS CLOSE COMMAND MACROS ----------------------------------------------------------------------
+	MACRO	_isclosecommand in_str,exit
+	_cmpstr cmd_bufer, cmd_close, 5
+	OR	A
+	JZ	cl2
+	XOR	A
+	LD	(termcmd),A
+	_cur_off
+	_closew
+	_isconnected
+	JZ	l2			;if not connected
+	LD	A,(conn_descr)
+	CP	0FFh
+	JZ	l2			;if descriptor is bad
+	CALL 	sockets.close
+	OR	A
+	JNZ	l21
+	_prints msg_connectclosed
+	LD	A,#FF
+	LD	(conn_descr),A
+	XOR	A
+	LD	(connected),A
+	JR	l2
+l21	_prints msg_closeerr
+l2	CALL	showstatus
+cl2	_cur_on
+	ENDM
+;---IS HELP COMMAND MACROS ----------------------------------------------------------------------
+	MACRO	_ishelpcommand in_str,exit
+	_cmpstr cmd_bufer, cmd_help, 4
+	OR	A
+	JP	Z,l3
+	_closew
+	_prints	msg_help
+	_printw wnd_cmd
+	_cur_on
+	JP	exit
+l3	
+	ENDM
+;--- JZ (JP Z) MACROS ----------------------------------------------------------------------
+	MACRO	JZ addr
+	JP	Z,addr
+	ENDM
+;----JNZ (JP NZ) MACROS---------------------------------------------------------------------
+	MACRO	JNZ addr
+	JP	NZ, addr
+	ENDM
+;-----------------------------
+	MACRO	_isconnected
+	LD	A,(connected)
+	CP	1
+	ENDM
+;-----------------------------
+	MACRO	_istermcommand
+	LD	A,(termcmd)
+	OR	A
+	ENDM
+;-----------------------------
+	MACRO	_iscmdmode
+	LD	A,(termcmd)
+	CP	1
+	ENDM
