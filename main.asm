@@ -1,10 +1,9 @@
 	module main
 
 	include "main.mac"
-	include "strings.mac"
-	include "wind.mac"
-
-	include "_rs232/sockets.mac"
+	include "sdk/strings/strings.mac"
+	include "sdk/windows_bmw/wind.mac"
+	include "sdk/sockets/sockets.mac"
 
 ;- MAIN PROCEDURE -
 PROG	
@@ -321,7 +320,7 @@ my_port		dw 0 ;my ip+port
 server_addr	db 93,158,134,3
 server_port	dw 23
 
-;	include "_rs232/uart.a80"
-	include "_rs232/sockets.a80"
+	include "sdk/sockets/sockets.a80"
+	include "sdk/strings/strings.a80"
 
 	endmodule

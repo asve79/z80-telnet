@@ -1620,5 +1620,4 @@ CMD_ADR:
 	DW	0
 	endmodule
 
-	include "edznak.a80"
-	
+;	include "edznak.a80"

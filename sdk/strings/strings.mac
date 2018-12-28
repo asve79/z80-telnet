@@ -1,0 +1,52 @@
+;find end string. return HL to position with 0
+	MACRO	_findzero string
+	PUSH	BC
+	LD	C,0
+	LD	HL, string
+	CALL	strings.findzero
+	POP	BC
+	ENDM
+
+;zill zero string
+	MACRO	_fillzero addr, len
+	PUSH 	AF
+	PUSH 	HL
+	PUSH 	BC
+	LD	HL, addr
+	LD 	BC, len
+	CALL	strings.fillzero
+	POP	BC
+	POP	HL
+	POP	AF
+	ENDM
+
+;compare string; return a as result. 1 - equal 0 - not equal
+	MACRO	_cmpstr str1, str2, len
+	PUSH	HL
+	PUSH	DE
+	PUSH	BC
+	LD	HL, str1
+	LD	DE, str2
+	LD	BC, len
+	CALL	strings.cmpstr
+	POP	BC
+	POP	DE
+	POP	HL
+	ENDM
+
+cmpstr
+	DEC	DE
+cmpstr1 INC	DE
+	LD	A,(DE)
+	CPI
+	JP	NZ, cmpstrn
+	LD	A,B
+	OR	A
+	JP	NZ, cmpstr1
+	LD	A,C
+	OR	A
+	JP	NZ, cmpstr1
+	LD	A,1
+	JP	cmpstre
+cmpstrn XOR	A
+cmpstre	ret

@@ -79,10 +79,11 @@ SYSERR:
 	DI
 	HALT
 
-	include "spkeyb40.a80"
-        include "wind.a80"
+	include "sdk/windows_bmw/spkeyb40.a80"
+	include "sdk/windows_bmw/edznak.a80"
+        include "sdk/windows_bmw/wind.a80"
         include "main.asm"
-	include "dmm.a80"
+	include "sdk/windows_bmw/dmm.a80"
 END
 
 	savesna "telnet.sna", _start
