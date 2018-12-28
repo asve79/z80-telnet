@@ -32,7 +32,7 @@ cmd_buffer ds 10
 ;------------------------------------------------------------------------
 
 
-	include "_rs232/uart.a80"
+	include "sdk/sockets/uart.a80"
 
 ;socket()
 ;>	byte #01

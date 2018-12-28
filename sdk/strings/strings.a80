@@ -1,16 +1,8 @@
 	MODULE	strings
 
-	include	"math.a80"
+	include	"sdk/math/math.a80"
 
 ;find end string. return HL to position with 0
-	MACRO	_findzero string
-	PUSH	BC
-	LD	C,0
-	LD	HL, string
-	CALL	strings.findzero
-	POP	BC
-	ENDM
-
 findzero
 fz_loop	LD	A,(HL)
 	OR	A
@@ -22,18 +14,6 @@ fz_end	LD	A,C
 	RET
 
 ;zill zero string
-	MACRO	_fillzero addr, len
-	PUSH 	AF
-	PUSH 	HL
-	PUSH 	BC
-	LD	HL, addr
-	LD 	BC, len
-	CALL	strings.fillzero
-	POP	BC
-	POP	HL
-	POP	AF
-	ENDM
-
 fillzero
 	LD	(HL),0
 	INC	HL
@@ -47,19 +27,6 @@ fillzero
 	RET
 
 ;compare string; return a as result. 1 - equal 0 - not equal
-	MACRO	_cmpstr str1, str2, len
-	PUSH	HL
-	PUSH	DE
-	PUSH	BC
-	LD	HL, str1
-	LD	DE, str2
-	LD	BC, len
-	CALL	strings.cmpstr
-	POP	BC
-	POP	DE
-	POP	HL
-	ENDM
-
 cmpstr
 	DEC	DE
 cmpstr1 INC	DE
