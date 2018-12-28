@@ -35,5 +35,10 @@
 	CALL	wind.PRINTC
 	ENDM
 
+	MACRO	_clearwindow
+	LD	A,31
+	CALL	wind.PRINTC
+	ENDM
+
 	ENDMODULE
 

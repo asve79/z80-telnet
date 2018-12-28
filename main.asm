@@ -6,7 +6,8 @@
 
 	include "_rs232/sockets.mac"
 
-PROG
+;- MAIN PROCEDURE -
+PROG	
 	CALL	init
 	_printw wnd_main
 	_prints	msg_keys
@@ -17,34 +18,34 @@ mloop   CALL	check_rcv
 	CALL    spkeyb.CONINW	;main loop entry
 	JZ	mloop		;wait a press key
 	PUSH 	AF
-	_idcmdmode		;if comman mode on go to cmdmodeproc
+	_iscmdmode		;if comman mode on go to cmdmodeproc
 	JZ	cmdmodeproc
 	;process terminal mode
 	POP	AF
 	CP	01Dh
 	JZ	exit		;if SS+Q pressed, exit
 	CP	01Ch		;if Ss+W pressed - terminal command
-	JZ	opencmdnode	
+	JZ	opencmdmode	
 	CP	#7F		;//delete key pressed
 	JZ	delsymtermmode	
 	CP	13		;//enter key pressed
 	JZ	enterkeytermmode
-	CALL	puttocmdbufer	;//put char to command bufer and print
+	CALL	puttotermbufer	;//put char to command bufer and print
 	JP	mloop
 cmdmodeproc ;process comman mode
 	POP	AF
 	CP	01Dh
 	JZ	closecmdmode	;if SS+Q pressed, exit
 	CP	01Ch		;if Ss+W pressed - terminal command
-	JZ	closecmdnode
+	JZ	closecmdmode
 	CP	#7F		;//delete key pressed
 	JZ	delsymcmdmode	
 	CP	13		;//enter key pressed
-	JP	enterkeycmdmode
-	CALL	puttotermbufer	;//put char to terminal bufer and print
+	JZ	enterkeycmdmode
+	CALL	puttocmdbufer	;//put char to terminal bufer and print
 	JP	mloop
 
-opencmdmode ;open commend window
+opencmdmode ;open command window
 	LD	A,1		;if terminal command mode is off
 	LD	(termcmd),A	;turn on termianl mode
 	_cur_off
@@ -54,20 +55,19 @@ opencmdmode ;open commend window
 	JP	mloop
 ;----
 closecmdmode ;close the commend window
-	_cur_off		
-	_endw
 	XOR	A
 	LD	(termcmd),A
+	_cur_off		
+	_endw
 	_cur_on
 	JP	mloop
 ;-----
 delsymcmdmode	;delete symbol in command bufer
-	LD	HL,cmd_bufer
-	JR	delsymproc
+	_findzero cmd_bufer	;//get ptr on last symbol+1 in buffer
+	JR	delsymproc	;//get ptr on last symbol+1 in buffer
 delsymtermmode	;delete symbol in terminal mode
-	LD	HL,inp_bufer
-delsymproc	;delete symbol main proc
 	_findzero inp_bufer	;//get ptr on last symbol+1 in buffer
+delsymproc	;delete symbol main proc
 	OR	A
 	JZ	mloop		;//if nothing in bufer (length=0)
 	DEC	HL
@@ -85,10 +85,11 @@ enterkeycmdmode	;enter key pressed in command window. execute command if it exis
 	_isopencommand cmd_bufer,eccm1	;//'open'  command
 	_isclosecommand cmd_bufer,eccm1 ;//'close' command
 	_ishelpcommand cmd_bufer,eccm1	;//'help' command
+	_clearwindow			;// wrong command:  clear window
 eccm1	_fillzero cmd_bufer, 100	;clear command buffer
-	jP 	mloop
+	JP 	mloop
 ;----
-enterkeycmdmode	;enter key pressed in terminal window
+enterkeytermmode	;enter key pressed in terminal window
 	_isconnected
 	JNZ	ekcm_nc		;//if not connected
 	_findzero inp_bufer
@@ -100,7 +101,9 @@ enterkeycmdmode	;enter key pressed in terminal window
 	LD	(HL),A
 	INC	C
 	LD	B,0
+	INC	BC
 	LD	A,(conn_descr)
+	LD	HL,inp_bufer
 	CALL	sockets.send	;//send buffer content
 	OR	A
 	JZ	ekcm_ok
@@ -116,6 +119,8 @@ ekcm_ok	_printw wnd_status	;//success status
 	_closew
 	_cur_on
 ekcm_nc	_fillzero inp_bufer,255
+	LD	A,13
+	_printc
 	JP	mloop
 ;- routine -
 puttocmdbufer	;put symbol in command bufer
@@ -123,11 +128,12 @@ puttocmdbufer	;put symbol in command bufer
 	_findzero cmd_bufer
 	JR	puttobufer
 puttotermbufer	;put symbol to terminal bufer
+	PUSH 	AF
 	_findzero inp_bufer
 puttobufer	;main procedure for put to bufer;TODO make insert mode with shift content
 	POP	AF
 	LD	(HL),A
-	call	wind.PRINTC	;out character
+	_printc		;out character
 	RET
 
 exit	_cur_off		;TOOD: close connection if needed
@@ -180,7 +186,7 @@ INCCNTR LD	A,(im_cntr)
 
 check_rcv	;//check receve info from connection
 	LD	A,(im_cntr)
-	AND	#C0
+	AND	#F0
 	RET	Z		;skip N tick's
 	XOR	A
 	LD	(im_cntr),A
@@ -198,23 +204,39 @@ check_rcv	;//check receve info from connection
 rcv1	recv	conn_descr,rcv_bufer,255
 	LD	HL,rcv_bufer
 	OR	A
-	JZ	rcv2
+	JZ	rcv5
 	_printw wnd_status	;//if error
 	LD	A,'!'
 	_printc
 	_closew
-	RET
+	CALL	close_connection
+	JR	rcv4
+rcv5	_cur_off
 rcv2	LD	A,B
 	OR	A
 	JNZ	rcv3
 	LD	A,C
 	OR	A
-	RET	Z	;//if BC=0 (receve 0 bytes); TODO: check is if 1st 0 bytes, then exit. if it end of block then get new block
+	JR	Z,rcv4	;//if BC=0 (receve 0 bytes); TODO: check is if 1st 0 bytes, then exit. if it end of block then get new block
 rcv3	LD	A,(HL)
 	_printc		;//print char
 	INC	HL
 	DEC	BC
 	JR	rcv2
+rcv4	_cur_on
+	RET
+
+close_connection	;routine for close active connection
+	LD	A,(conn_descr)
+	CP	#FF	;//check descriptor
+	RET	Z
+	CALL	sockets.close
+	LD	A,#FF
+	LD	(conn_descr),A
+	XOR	A
+	LD	(connected),A
+	_prints msg_connectclosed
+	RET
 
 wnd_main
 	DB 0,0
@@ -223,7 +245,7 @@ wnd_main
 	DB 00000011B
 	DB 0,0
 	DB 0
-	DB 1,'Terminal v0.0.5',0
+	DB 1,'Terminal v0.0.7',0
 
 wnd_cmd
 	DB 0,21
