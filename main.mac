@@ -70,29 +70,23 @@ oc1	CALL 	sockets.gethostbyname	;//get ip address
 	or a:jr nz,get_err
 	_closew
 	_prints msg_openok
-	LD	HL,connected
 	LD	A,1
-	LD	(HL),A
+	LD	(connected),A
 	CALL	showstatus
-	jr	lex
+	JP	exit
 get_err	_closew
 	_prints msg_openerr
-	LD	HL,connected
-	LD	(HL),0
-	jr	lex
+get_er	XOR	A
+	LD	(connected),A
 	CALL	showstatus
+	JP	exit
 oc3	_closew
 	_prints msg_alredyopen
-	LD	HL,connected
-	LD	(HL),0
-	jr	lex
-	CALL	showstatus
+	jr	get_er
 oc4	_closew
 	_prints	msg_fdproblem
-	LD	HL,connected
-	LD	(HL),0
-	CALL	showstatus
-lex
+	jr	get_er
+lex	
 	ENDM
 	
 ;--- IS CLOSE COMMAND MACROS ----------------------------------------------------------------------
@@ -105,7 +99,7 @@ lex
 	_cur_off
 	_closew
 	_isconnected
-	JZ	l2			;if not connected
+	JNZ	l2			;if not connected
 	LD	A,(conn_descr)
 	CP	0FFh
 	JZ	l2			;if descriptor is bad
@@ -120,7 +114,9 @@ lex
 	JR	l2
 l21	_prints msg_closeerr
 l2	CALL	showstatus
-cl2	_cur_on
+	_cur_on
+	JP	exit
+cl2	
 	ENDM
 ;---IS HELP COMMAND MACROS ----------------------------------------------------------------------
 	MACRO	_ishelpcommand in_str,exit
@@ -132,7 +128,27 @@ cl2	_cur_on
 	_printw wnd_cmd
 	_cur_on
 	JP	exit
-l3	
+l3
+	ENDM
+;---IS ABOUT COMMAND MACROS ----------------------------------------------------------------------
+	MACRO	_isaboutcommand in_str,exit
+	_cmpstr cmd_bufer, cmd_about, 5
+	OR	A
+	JP	Z,l4
+	_closew
+	_prints	msg_about
+	_printw wnd_cmd
+	_cur_on
+	JP	exit
+l4
+	ENDM
+;---IS EXIT COMMAND MACROS ----------------------------------------------------------------------
+	MACRO	_isexitcommand in_str,exit
+	_cmpstr cmd_bufer, cmd_exit, 4
+	OR	A
+	JP	Z,l5
+	JP	main.exit
+l5
 	ENDM
 ;--- JZ (JP Z) MACROS ----------------------------------------------------------------------
 	MACRO	JZ addr

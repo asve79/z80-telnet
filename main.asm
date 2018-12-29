@@ -23,6 +23,14 @@ mloop   CALL	check_rcv
 	POP	AF
 	CP	01Dh
 	JZ	exit		;if SS+Q pressed, exit
+	CP	#08		;left cursor key pressed
+	JZ	mloop
+	CP	#19		;right cursor key pressed
+	JZ	mloop
+	CP	#1A		;up cursor key pressed
+	JZ	mloop
+	CP	#18		;down cursor key pressed
+	JZ	mloop
 	CP	01Ch		;if Ss+W pressed - terminal command
 	JZ	opencmdmode	
 	CP	#7F		;//delete key pressed
@@ -33,6 +41,14 @@ mloop   CALL	check_rcv
 	JP	mloop
 cmdmodeproc ;process comman mode
 	POP	AF
+	CP	#08		;left cursor key pressed
+	JZ	mloop
+	CP	#19		;right cursor key pressed
+	JZ	mloop
+	CP	#1A		;up cursor key pressed
+	JZ	mloop
+	CP	#18		;down cursor key pressed
+	JZ	mloop
 	CP	01Dh
 	JZ	closecmdmode	;if SS+Q pressed, exit
 	CP	01Ch		;if Ss+W pressed - terminal command
@@ -81,9 +97,11 @@ delsymproc	;delete symbol main proc
 	JP	mloop
 ;----
 enterkeycmdmode	;enter key pressed in command window. execute command if it exists
-	_isopencommand cmd_bufer,eccm1	;//'open'  command
+	_isopencommand  cmd_bufer,eccm1	;//'open'  command
 	_isclosecommand cmd_bufer,eccm1 ;//'close' command
-	_ishelpcommand cmd_bufer,eccm1	;//'help' command
+	_ishelpcommand  cmd_bufer,eccm1	;//'help' command
+	_isaboutcommand cmd_bufer,eccm1	;//'about' command
+	_isexitcommand cmd_bufer,eccm1	;//'about' command
 	_clearwindow			;// wrong command:  clear window
 eccm1	_fillzero cmd_bufer, 100	;clear command buffer
 	JP 	mloop
@@ -159,9 +177,8 @@ init	LD HL,connected
 showstatus
 	_printw wnd_status
 ;	_prints msg_status
-	LD	A,(connected)
-	OR	A
-	JZ	sstat1
+	_isconnected
+	JNZ	sstat1
 	LD	A,'*'
 	_printc
 ;	_prints msg_connected
@@ -170,10 +187,10 @@ sstat1	;_prints msg_disconnected
 	LD	A,'x'
 	_printc
 sstat_e	
-	LD	A,(inc_addr)
-	INC	A
-	LD	(inc_addr),A
-	CALL	wind.A_HEX
+;	LD	A,(inc_addr)	;//for debug
+;	INC	A
+;	LD	(inc_addr),A
+;	CALL	wind.A_HEX
 	_closew
 	RET
 
@@ -196,15 +213,15 @@ check_rcv	;//check receve info from connection
 ;	_printc
 	LD	A,(connected)
 	OR	A
-	RET	Z
+	RET	Z		;//if not connected
 	LD	A,(conn_descr)
-	CP	#FF	;//check descriptor
+	CP	#FF		;//check descriptor. FF - bad
 	RET	Z
 rcv1	recv	conn_descr,rcv_bufer,255
 	LD	HL,rcv_bufer
 	OR	A
 	JZ	rcv5
-	_printw wnd_status	;//if error
+	_printw wnd_status	;//if error, close connection
 	LD	A,'!'
 	_printc
 	_closew
@@ -244,7 +261,7 @@ wnd_main
 	DB 00000011B
 	DB 0,0
 	DB 0
-	DB 1,'Terminal v0.0.7',0
+	DB 1,'Terminal v1.0.0',0
 
 wnd_cmd
 	DB 0,21
@@ -271,34 +288,46 @@ msg_keys
 	DB '-------------------------------------',13,13,0
 
 msg_help 
-	DB 13,'Commands:',13
-        DB '---------',13
-	DB 'open hostname port - Open connection to host:port',13
-	DB 'close - Close current connection',13
-	DB 'help - this help message',13,13
-	DB 'Keys',13
-	DB '----',13
-	DB 'RShift+Q - Exit',13
-	DB 'RShift+W - Enter terminal command',13
-	DB 0
+	DB 13,'Commands:'
+        DB 13,'---------'
+	DB 13,'open hostname port - Open connection to host:port'
+	DB 13,'close - Close current connection'
+	DB 13,'help  - this help message'
+	DB 13,'about - about appication'
+	DB 13,'exit  - quit appication',13
+	DB 13,'Keys'
+	DB 13,'----'
+	DB 13,'RShift+Q - Exit'
+	DB 13,'RShift+W - Enter terminal command'
+	DB 13,13,0
+
+msg_about
+	DB 13,'About:'
+	DB 13,'------'
+	DB 13,'Application by asve (asve@ae-nest.com)'
+	DB 13,'Window libs by https://github.com/mborisov1'
+	DB 13,'Socket libs by https://github.com/HackerVBI'
+	DB 13,13,0
 
 inc_addr 	DB 0
 
-msg_status 	DB 31,'Remote: ',0
+msg_status 	DB 31,'Remote: ',13,0
 msg_connected 	DB 'connected',0
 msg_disconnected DB 'disconnected',0
 msg_closeok 	DB 'closed',0
-msg_closeerr 	DB 'close error',0
-msg_openerr 	DB 'open connection error',0
+msg_closeerr 	DB 13,'close error',13,0
+msg_openerr 	DB 13,'open connection error',13,0
 msg_openok  	DB 13,'Connected successfuly',13,0
-msg_alredyopen 	DB 'Have active connection. Close current first!',0
-msg_fdproblem 	DB 'Connection descriptor problem',0
+msg_alredyopen 	DB 13,'Have active connection. Close current first!',13,0
+msg_fdproblem 	DB 13,'Connection descriptor problem',13,0
 msg_connecting 	DB 'Connecting...',0
 msg_connectclosed DB 13,'Disconnected',13,0
 
 cmd_open  DB 'open',0
 cmd_close DB 'close',0
 cmd_help  DB 'help',0
+cmd_about DB 'about',0
+cmd_exit  DB 'exit',0
 
 ;----------------------------- VARIABLES ---------------------
 im_cntr		DB 0
