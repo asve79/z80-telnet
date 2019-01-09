@@ -261,7 +261,7 @@ wnd_main
 	DB 00000011B
 	DB 0,0
 	DB 0
-	DB 1,'Terminal v1.0.1',0
+	DB 1,'Terminal v1.0.2',0
 
 wnd_cmd
 	DB 0,21

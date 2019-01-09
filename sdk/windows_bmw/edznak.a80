@@ -76,22 +76,22 @@ ZNAK
     db 80h,80h,0F0h,88h,88h,88h,88h,00h		//h
     db 20h,00h,60h,20h,20h,20h,70h,00h		//i
     db 10h,00h,10h,10h,10h,10h,90h,60h		//j
-    db 80h,80h,90h,0A0h,0C0h,0A0h,90h,00h
-    db 60h,20h,20h,20h,20h,20h,70h,00h
-    db 00h,00h,0F0h,0A8h,0A8h,0A8h,0A8h,00h
-    db 00h,00h,0F0h,88h,88h,88h,88h,00h
-    db 00h,00h,70h,88h,88h,88h,70h,00h
-    db 00h,00h,0F0h,88h,88h,0F0h,80h,80h
-    db 00h,00h,78h,88h,88h,78h,08h,08h
-    db 00h,00h,0B8h,0C0h,80h,80h,80h,00h
-    db 00h,00h,78h,80h,70h,08h,0F0h,00h
-    db 40h,40h,0F0h,40h,40h,40h,38h,00h
-    db 00h,00h,88h,88h,88h,88h,78h,00h
-    db 00h,00h,88h,88h,50h,50h,20h,00h
-    db 00h,00h,88h,88h,0A8h,0A8h,50h,00h
-    db 00h,00h,88h,50h,20h,50h,88h,00h
-    db 00h,00h,88h,50h,20h,20h,20h,00h
-    db 00h,00h,0F8h,10h,20h,40h,0F8h,00h
+    db 80h,80h,90h,0A0h,0C0h,0A0h,90h,00h	//k
+    db 60h,20h,20h,20h,20h,20h,70h,00h		//l
+    db 00h,00h,0F0h,0A8h,0A8h,0A8h,0A8h,00h	//m
+    db 00h,00h,0F0h,88h,88h,88h,88h,00h		//n
+    db 00h,00h,70h,88h,88h,88h,70h,00h		//o
+    db 00h,00h,0F0h,88h,88h,0F0h,80h,80h	//p
+    db 00h,00h,78h,88h,88h,78h,08h,08h		//q
+    db 00h,00h,0B8h,0C0h,80h,80h,80h,00h	//r
+    db 00h,00h,78h,80h,70h,08h,0F0h,00h		//s
+    db 40h,40h,0F0h,40h,40h,40h,38h,00h		//t
+    db 00h,00h,88h,88h,88h,88h,78h,00h		//u
+    db 00h,00h,88h,88h,50h,50h,20h,00h		//v
+    db 00h,00h,88h,88h,0A8h,0A8h,50h,00h	//w
+    db 00h,00h,88h,50h,20h,50h,88h,00h		//x
+    db 00h,00h,88h,88h,78h,08h,70h,00h		//y
+    db 00h,00h,0F8h,10h,20h,40h,0F8h,00h	//z
     db 18h,20h,20h,40h,20h,20h,18h,00h
     db 20h,20h,20h,20h,20h,20h,20h,00h
     db 0C0h,20h,20h,10h,20h,20h,0C0h,00h
