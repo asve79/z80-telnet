@@ -66,16 +66,16 @@ ZNAK
     db 70h,88h,00h,00h,00h,00h,00h,00h
     db 00h,00h,00h,00h,00h,00h,0F8h,00h
     db 60h,30h,00h,00h,00h,00h,00h,00h
-    db 00h,00h,70h,08h,78h,88h,78h,00h
-    db 80h,80h,80h,0F0h,88h,88h,0F0h,00h
-    db 00h,00h,78h,80h,80h,80h,78h,00h
-    db 08h,08h,08h,78h,88h,88h,78h,00h
-    db 00h,00h,70h,88h,0F8h,80h,78h,00h
-    db 18h,20h,20h,0F8h,20h,20h,20h,00h
-    db 00h,00h,78h,88h,88h,78h,08h,70h
-    db 80h,80h,80h,0F0h,88h,88h,88h,00h
-    db 00h,20h,00h,60h,20h,20h,70h,00h
-    db 00h,10h,00h,10h,10h,10h,90h,60h
+    db 00h,00h,70h,08h,78h,88h,78h,00h		//a
+    db 80h,80h,0F0h,88h,88h,88h,0F0h,00h 	//b
+    db 00h,00h,78h,80h,80h,80h,78h,00h		//c
+    db 08h,08h,78h,88h,88h,88h,78h,00h 		//d
+    db 00h,00h,70h,88h,0F8h,80h,78h,00h		//e
+    db 18h,20h,20h,0F8h,20h,20h,20h,00h		//f
+    db 00h,00h,78h,88h,88h,78h,08h,70h		//g
+    db 80h,80h,0F0h,88h,88h,88h,88h,00h		//h
+    db 20h,00h,60h,20h,20h,20h,70h,00h		//i
+    db 10h,00h,10h,10h,10h,10h,90h,60h		//j
     db 80h,80h,90h,0A0h,0C0h,0A0h,90h,00h
     db 60h,20h,20h,20h,20h,20h,70h,00h
     db 00h,00h,0F0h,0A8h,0A8h,0A8h,0A8h,00h
