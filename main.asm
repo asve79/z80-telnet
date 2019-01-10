@@ -1,9 +1,9 @@
 	module main
 
 	include "main.mac"
-	include "sdk/strings/strings.mac"
-	include "sdk/windows_bmw/wind.mac"
-	include "sdk/sockets/sockets.mac"
+	include "z80-sdk/strings/strings.mac"
+	include "z80-sdk/windows_bmw/wind.mac"
+	include "z80-sdk/sockets/sockets.mac"
 
 ;- MAIN PROCEDURE -
 PROG	
@@ -349,7 +349,7 @@ my_port		dw 0 ;my ip+port
 server_addr	db 93,158,134,3
 server_port	dw 23
 
-	include "sdk/sockets/sockets.a80"
-	include "sdk/strings/strings.a80"
+	include "z80-sdk/sockets/sockets.a80"
+	include "z80-sdk/strings/strings.a80"
 
 	endmodule
