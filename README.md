@@ -13,7 +13,7 @@ build:
 ```bash
 git clone git@github.com:asve79/z80-telnet.git
 
-cd xasconv
+cd z80-telnet
 ./get_depencies.sh
 ./_make.sh
 ```
