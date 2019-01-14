@@ -236,7 +236,7 @@ rcv2	LD	A,B
 	JR	Z,rcv4	;//if BC=0 (receve 0 bytes); TODO: check is if 1st 0 bytes, then exit. if it end of block then get new block
 rcv3	LD	A,(HL)
 	_printc		;//print char
-	INC	HL
+drv1	INC	HL
 	DEC	BC
 	JR	rcv2
 rcv4	_cur_on
@@ -261,7 +261,7 @@ wnd_main
 	DB 00000011B
 	DB 0,0
 	DB 0
-	DB 1,'Terminal v1.0.2',0
+	DB 1,'Terminal v1.0.3',0
 
 wnd_cmd
 	DB 0,21
@@ -282,6 +282,7 @@ wnd_status
 	DB 1,'Status',0
 
 msg_keys
+	DB 'Socket server version (ic).',13
         DB 'Press SS+Q for exit.',13
         DB 'Press SS+W for terminal command.',13
 	DB 'For help type "help" in terminal cmd.',13
@@ -304,6 +305,7 @@ msg_help
 msg_about
 	DB 13,'About:'
 	DB 13,'------'
+	DB 13,'Telnet Client. Socket server version.',13
 	DB 13,'Application by asve (asve@ae-nest.com)'
 	DB 13,'Window libs by https://github.com/mborisov1'
 	DB 13,'Socket libs by https://github.com/HackerVBI'
