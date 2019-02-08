@@ -298,8 +298,8 @@ msg_help
 	DB 13,'exit  - quit appication',13
 	DB 13,'Keys'
 	DB 13,'----'
-	DB 13,'RShift+Q - Exit'
-	DB 13,'RShift+W - Enter terminal command'
+	DB 13,'SS+Q - Exit'
+	DB 13,'SS+W - Enter terminal command'
 	DB 13,13,0
 
 msg_about
